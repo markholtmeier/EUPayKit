@@ -1,0 +1,3 @@
+module EUPayKit {
+    header "/private/tmp/EUPayKit-release/.build/arm64-apple-macosx/debug/EUPayKit.build/include/EUPayKit-Swift.h"
+}
