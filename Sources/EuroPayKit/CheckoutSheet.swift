@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 /// The result of a checkout session.
-public enum CheckoutResult: Sendable {
+public enum EuroPayCheckoutResult: Sendable {
     /// Payment completed — contains the Stripe Checkout Session ID.
     case completed(sessionId: String)
     /// User cancelled the checkout.
@@ -29,7 +29,7 @@ public enum CheckoutResult: Sendable {
 ///         WindowGroup {
 ///             ContentView()
 ///                 .onOpenURL { url in
-///                     CheckoutSheet.handleReturnURL(url)
+///                     EuroPayCheckoutSheet.handleReturnURL(url)
 ///                 }
 ///         }
 ///     }
@@ -40,10 +40,10 @@ public enum CheckoutResult: Sendable {
 ///
 /// ```swift
 /// ContentView()
-///     .eupayCheckoutReturnHandler()
+///     .euroPayCheckoutReturnHandler()
 /// ```
 @MainActor
-public enum CheckoutSheet {
+public enum EuroPayCheckoutSheet {
 
     /// Open the checkout URL in the configured mode.
     ///
@@ -51,9 +51,9 @@ public enum CheckoutSheet {
     @discardableResult
     static func open(
         url: URL,
-        mode: EUPayConfig.CheckoutMode,
+        mode: EuroPayConfig.CheckoutMode,
         presenting viewController: UIViewController
-    ) async throws -> CheckoutResult {
+    ) async throws -> EuroPayCheckoutResult {
         switch mode {
         case .inAppSafari:
             return await openInAppSafari(url: url, from: viewController)
@@ -69,7 +69,7 @@ public enum CheckoutSheet {
 
     // MARK: - In-App Safari
 
-    private static func openInAppSafari(url: URL, from vc: UIViewController) async -> CheckoutResult {
+    private static func openInAppSafari(url: URL, from vc: UIViewController) async -> EuroPayCheckoutResult {
         return await withCheckedContinuation { continuation in
             var didResume = false
             let safariVC = SFSafariViewController(url: url)
@@ -79,7 +79,7 @@ public enum CheckoutSheet {
             // Listen for Universal Link return
             var observer: NSObjectProtocol?
             observer = NotificationCenter.default.addObserver(
-                forName: .EUPayCheckoutReturn,
+                forName: .EuroPayCheckoutReturn,
                 object: nil,
                 queue: .main
             ) { notification in
@@ -91,7 +91,7 @@ public enum CheckoutSheet {
                 }
 
                 safariVC.dismiss(animated: true) {
-                    let result = notification.userInfo?["result"] as? CheckoutResult ?? .cancelled
+                    let result = notification.userInfo?["result"] as? EuroPayCheckoutResult ?? .cancelled
                     continuation.resume(returning: result)
                 }
             }
@@ -118,13 +118,13 @@ public enum CheckoutSheet {
 
     // MARK: - External Safari / Universal Link
 
-    private static func waitForUniversalLink() async -> CheckoutResult {
+    private static func waitForUniversalLink() async -> EuroPayCheckoutResult {
         return await withCheckedContinuation { continuation in
             var didResume = false
             var observer: NSObjectProtocol?
 
             observer = NotificationCenter.default.addObserver(
-                forName: .EUPayCheckoutReturn,
+                forName: .EuroPayCheckoutReturn,
                 object: nil,
                 queue: .main
             ) { notification in
@@ -135,7 +135,7 @@ public enum CheckoutSheet {
                     NotificationCenter.default.removeObserver(obs)
                 }
 
-                let result = notification.userInfo?["result"] as? CheckoutResult ?? .cancelled
+                let result = notification.userInfo?["result"] as? EuroPayCheckoutResult ?? .cancelled
                 continuation.resume(returning: result)
             }
         }
@@ -155,7 +155,7 @@ public enum CheckoutSheet {
     ///         WindowGroup {
     ///             ContentView()
     ///                 .onOpenURL { url in
-    ///                     CheckoutSheet.handleReturnURL(url)
+    ///                     EuroPayCheckoutSheet.handleReturnURL(url)
     ///                 }
     ///         }
     ///     }
@@ -169,12 +169,12 @@ public enum CheckoutSheet {
     /// func scene(_ scene: UIScene,
     ///            openURLContexts URLContexts: Set<UIOpenURLContext>) {
     ///     guard let url = URLContexts.first?.url else { return }
-    ///     CheckoutSheet.handleReturnURL(url)
+    ///     EuroPayCheckoutSheet.handleReturnURL(url)
     /// }
     /// ```
     ///
     /// - Parameter url: The URL received by the app (custom scheme or Universal Link)
-    /// - Returns: `true` if the URL was handled by EUPayKit, `false` otherwise
+    /// - Returns: `true` if the URL was handled by EuroPayKit, `false` otherwise
     @discardableResult
     public static func handleReturnURL(_ url: URL) -> Bool {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
@@ -188,12 +188,12 @@ public enum CheckoutSheet {
             return false
         }
 
-        let result: CheckoutResult = cancelled
+        let result: EuroPayCheckoutResult = cancelled
             ? .cancelled
             : .completed(sessionId: sessionId ?? "")
 
         NotificationCenter.default.post(
-            name: .EUPayCheckoutReturn,
+            name: .EuroPayCheckoutReturn,
             object: nil,
             userInfo: ["result": result]
         )
@@ -203,7 +203,7 @@ public enum CheckoutSheet {
 
 // MARK: - SwiftUI View Modifier
 
-/// A SwiftUI view modifier that automatically handles EUPay checkout return URLs.
+/// A SwiftUI view modifier that automatically handles EuroPay checkout return URLs.
 ///
 /// Apply this to your root view instead of manually wiring up `onOpenURL`:
 ///
@@ -213,33 +213,33 @@ public enum CheckoutSheet {
 ///     var body: some Scene {
 ///         WindowGroup {
 ///             ContentView()
-///                 .eupayCheckoutReturnHandler()
+///                 .euroPayCheckoutReturnHandler()
 ///         }
 ///     }
 /// }
 /// ```
-public struct EUPayCheckoutReturnHandler: ViewModifier {
+public struct EuroPayCheckoutReturnHandler: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .onOpenURL { url in
-                CheckoutSheet.handleReturnURL(url)
+                EuroPayCheckoutSheet.handleReturnURL(url)
             }
     }
 }
 
 extension View {
-    /// Adds EUPay checkout return URL handling to this view.
+    /// Adds EuroPay checkout return URL handling to this view.
     ///
     /// Attach this modifier to your root view in the `WindowGroup` scene.
-    /// It automatically calls ``CheckoutSheet/handleReturnURL(_:)`` when the
+    /// It automatically calls ``EuroPayCheckoutSheet/handleReturnURL(_:)`` when the
     /// app receives a URL via the scene-based `onOpenURL` lifecycle.
     ///
     /// ```swift
     /// ContentView()
-    ///     .eupayCheckoutReturnHandler()
+    ///     .euroPayCheckoutReturnHandler()
     /// ```
-    public func eupayCheckoutReturnHandler() -> some View {
-        modifier(EUPayCheckoutReturnHandler())
+    public func euroPayCheckoutReturnHandler() -> some View {
+        modifier(EuroPayCheckoutReturnHandler())
     }
 }
 
@@ -247,13 +247,13 @@ extension View {
 
 extension Notification.Name {
     /// Posted when the app receives a checkout return URL.
-    static let EUPayCheckoutReturn = Notification.Name("EUPayCheckoutReturn")
+    static let EuroPayCheckoutReturn = Notification.Name("EuroPayCheckoutReturn")
 }
 
 // MARK: - Safari Dismiss Delegate
 
 private enum AssociatedKeys {
-    static var delegate = "EUPaySafariDelegate"
+    static var delegate = "EuroPaySafariDelegate"
 }
 
 /// Detects when the user taps "Done" / swipes away the SFSafariViewController.

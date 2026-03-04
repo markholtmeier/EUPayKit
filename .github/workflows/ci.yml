@@ -15,13 +15,13 @@ jobs:
       - name: Build
         run: |
           xcodebuild build \
-            -scheme EUPayKit \
+            -scheme EuroPayKit \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -skipPackagePluginValidation
 
       - name: Test
         run: |
           xcodebuild test \
-            -scheme EUPayKit \
+            -scheme EuroPayKit \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -skipPackagePluginValidation
